@@ -1,0 +1,7 @@
+keyboard==0.13.5
+numpy==1.23.0
+opencv_python==4.6.0.66
+Pillow==9.2.0
+PyDirectInput==1.0.4
+pytesseract==0.3.9
+pypiwin32==223
