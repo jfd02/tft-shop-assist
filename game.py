@@ -1,7 +1,7 @@
 """
 Handles tasks that happen each game round
 """
-from time import perf_counter
+
 from time import sleep
 from difflib import SequenceMatcher
 import threading
@@ -65,6 +65,7 @@ class Game:
         while True:
             if (keyboard.is_pressed(settings.HOT_KEY) and settings.USE_HOT_KEY) or not settings.USE_HOT_KEY:
                 self.buy_champions()
+            sleep(0.01)
 
     def valid_champ(self, champ: str) -> str:
         """Matches champion string to a valid champion name string and returns it"""
@@ -87,7 +88,6 @@ class Game:
 
     def get_shop(self) -> list:
         """Returns the list of champions in the shop"""
-        t1_start = perf_counter()
         screen_capture = ImageGrab.grab(bbox=screen_coords.SHOP_POS.get_coords())
         shop = []
         thread_list = []
@@ -98,8 +98,6 @@ class Game:
             thread.start()
         for thread in thread_list:
             thread.join()
-        t1_stop = perf_counter()
-        print("Elapsed time:", t1_stop-t1_start, 'ms')
         return shop
 
     def buy_champions(self) -> None:
