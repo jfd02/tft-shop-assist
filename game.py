@@ -1,9 +1,10 @@
 """
 Handles tasks that happen each game round
 """
-
+from time import perf_counter
 from time import sleep
 from difflib import SequenceMatcher
+import threading
 from PIL import ImageGrab
 import win32gui
 import keyboard
@@ -75,27 +76,40 @@ class Game:
                 return champion
         return ""
 
+    def get_champ(self, screen_capture: ImageGrab.Image, name_pos: Vec4, shop_pos: int, shop_array: list) -> str:
+        """Returns a tuple containing the shop position and champion name"""
+        champ = screen_capture.crop(name_pos.get_coords())
+        champ = ocr.get_text_from_image(image=champ, whitelist="")
+        if champ in champions.CHAMPIONS:
+            shop_array.append((shop_pos, champ))
+            return
+        shop_array.append((shop_pos, self.valid_champ(champ)))
+
     def get_shop(self) -> list:
         """Returns the list of champions in the shop"""
+        t1_start = perf_counter()
         screen_capture = ImageGrab.grab(bbox=screen_coords.SHOP_POS.get_coords())
         shop = []
-        for names in screen_coords.CHAMP_NAME_POS:
-            champ = screen_capture.crop(names.get_coords())
-            champ = ocr.get_text_from_image(image=champ, whitelist="")
-            if champ in champions.CHAMPIONS:
-                shop.append(champ)
-            else:
-                shop.append(self.valid_champ(champ))
+        thread_list = []
+        for shop_index, name_pos in enumerate(screen_coords.CHAMP_NAME_POS):
+            thread = threading.Thread(target=self.get_champ, args=(screen_capture, name_pos, shop_index, shop))
+            thread_list.append(thread)
+        for thread in thread_list:
+            thread.start()
+        for thread in thread_list:
+            thread.join()
+        t1_stop = perf_counter()
+        print("Elapsed time:", t1_stop-t1_start, 'ms')
         return shop
 
     def buy_champions(self) -> None:
         """Iterates through the shop and purchases champions that are in champions to buy array"""
         shop = self.get_shop()
         print(f"\nShop: {shop}")
-        for index, champion in enumerate(shop):
-            if champion in settings.CHAMPIONS_TO_BUY:
-                mk_functions.left_click(screen_coords.BUY_LOC[index].get_coords())
-                print(f"\tPurchased {champion}")
+        for champion in shop:
+            if champion[1] in settings.CHAMPIONS_TO_BUY:
+                mk_functions.left_click(screen_coords.BUY_LOC[champion[0]].get_coords())
+                print(f"\tPurchased {champion[1]}")
         if settings.REROLL:
             mk_functions.reroll()
             print("\nRerolled shop")
